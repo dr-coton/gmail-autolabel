@@ -27,7 +27,7 @@ def _token_path() -> Path:
     return _config_dir() / "token.json"
 
 
-def run_oauth_flow() -> None:
+def run_oauth_flow(force: bool = False) -> None:
     creds_path = _credentials_path()
     if not creds_path.exists():
         print(f"ERROR: credentials.json not found at {creds_path}", file=sys.stderr)
@@ -41,10 +41,16 @@ def run_oauth_flow() -> None:
     config = _config_dir()
     config.mkdir(parents=True, exist_ok=True)
 
+    token_path = _token_path()
+    if force and token_path.exists():
+        token_path.unlink()
+        print(f"Removed existing token: {token_path}")
+
     flow = InstalledAppFlow.from_client_secrets_file(str(creds_path), SCOPES)
-    creds = flow.run_local_server(port=0)
-    _token_path().write_text(creds.to_json())
-    print(f"Authentication complete. Token saved to {_token_path()}")
+    extra = {"prompt": "consent"} if force else {}
+    creds = flow.run_local_server(port=0, **extra)
+    token_path.write_text(creds.to_json())
+    print(f"Authentication complete. Token saved to {token_path}")
 
 
 def get_service():

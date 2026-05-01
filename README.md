@@ -98,9 +98,25 @@ Claude가 실행하는 흐름:
 `https://www.googleapis.com/auth/gmail.modify` — 메일 읽기 + 라벨 수정.
 삭제/전송 권한은 요청하지 않습니다.
 
+## 토큰 갱신
+
+OAuth consent screen이 **Testing** 상태인 경우 refresh token이 7일 후 만료됩니다.
+다음 한 줄로 토큰 삭제 + 강제 재인증을 한 번에 처리:
+
+```bash
+uvx --from git+https://github.com/dr-coton/private-gmail-mcp gmail-mcp auth --force
+```
+
+`--force`(또는 동등한 `--refresh`)가 하는 일:
+- 기존 `token.json` 삭제
+- Google에 `prompt=consent` 보내서 새 refresh token 강제 발급
+
+플래그 없이 그냥 `auth` 만 돌려도 인증은 되지만, 이전 동의가 캐시돼서 새 refresh token이
+안 떨어질 수 있어 만료 복구 시에는 `--force` 사용을 권장합니다.
+
 ## 문제 해결
 
 - **"Token not found"** → `gmail-mcp auth` 를 먼저 실행했는지 확인
 - **OAuth 동의 화면에서 "앱이 확인되지 않음"** → 정상. "고급 → 안전하지 않은 페이지로 이동" 클릭
-- **토큰 만료/취소** → `~/.config/private-gmail-mcp/token.json` 삭제 후 `auth` 재실행
+- **`invalid_grant` / 토큰 만료** → `gmail-mcp auth --force` 실행
 - **다른 경로에 credentials 두기** → `export GMAIL_MCP_CREDENTIALS=/path/to/credentials.json`
