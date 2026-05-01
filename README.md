@@ -12,6 +12,12 @@ Stop manually triaging your inbox — let Claude read, classify, and file your m
 
 **English** · [한국어](./README.ko.md) · [中文](./README.zh.md) · [日本語](./README.ja.md)
 
+<br>
+
+<img src="./docs/hero.png" alt="Gmail inbox after triage by gmail-autolabel — every message classified with a colored label" width="900">
+
+<sub><i>An inbox after Claude has triaged it: receipts, security alerts, newsletters, travel, work — every message classified, with multilingual support out of the box.</i></sub>
+
 </div>
 
 ---

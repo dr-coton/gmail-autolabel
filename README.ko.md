@@ -12,6 +12,12 @@
 
 [English](./README.md) · **한국어** · [中文](./README.zh.md) · [日本語](./README.ja.md)
 
+<br>
+
+<img src="./docs/hero.png" alt="gmail-autolabel로 정리된 Gmail 받은편지함 — 모든 메일에 컬러 라벨이 자동 적용된 모습" width="900">
+
+<sub><i>Claude가 정리한 받은편지함: 영수증, 보안 알림, 뉴스레터, 여행, 업무까지 — 모든 메일이 분류되어 있고, 다국어 메일도 그대로 처리됩니다.</i></sub>
+
 </div>
 
 ---

@@ -12,6 +12,12 @@
 
 [English](./README.md) · [한국어](./README.ko.md) · [中文](./README.zh.md) · **日本語**
 
+<br>
+
+<img src="./docs/hero.png" alt="gmail-autolabel で仕分けされた Gmail 受信トレイ —— すべてのメールに自動でカラーラベルが付与されている" width="900">
+
+<sub><i>Claude が仕分けた受信トレイ: 領収書、セキュリティ通知、ニュースレター、出張、仕事まで —— すべて自動分類、多言語メールもそのまま処理できます。</i></sub>
+
 </div>
 
 ---

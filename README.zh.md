@@ -12,6 +12,12 @@
 
 [English](./README.md) · [한국어](./README.ko.md) · **中文** · [日本語](./README.ja.md)
 
+<br>
+
+<img src="./docs/hero.png" alt="经 gmail-autolabel 整理后的 Gmail 收件箱 —— 每封邮件都自动打上彩色标签" width="900">
+
+<sub><i>Claude 整理后的收件箱:发票、安全提醒、订阅资讯、出行、工作 —— 全部自动分类,多语言邮件同样处理得当。</i></sub>
+
 </div>
 
 ---
