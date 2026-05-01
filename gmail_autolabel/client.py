@@ -11,14 +11,14 @@ SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 
 
 def _config_dir() -> Path:
-    base = os.environ.get("GMAIL_MCP_CONFIG_DIR")
+    base = os.environ.get("GMAIL_AUTOLABEL_CONFIG_DIR")
     if base:
         return Path(base).expanduser()
-    return Path.home() / ".config" / "private-gmail-mcp"
+    return Path.home() / ".config" / "gmail-autolabel"
 
 
 def _credentials_path() -> Path:
-    if p := os.environ.get("GMAIL_MCP_CREDENTIALS"):
+    if p := os.environ.get("GMAIL_AUTOLABEL_CREDENTIALS"):
         return Path(p).expanduser()
     return _config_dir() / "credentials.json"
 
@@ -33,7 +33,7 @@ def run_oauth_flow(force: bool = False) -> None:
         print(f"ERROR: credentials.json not found at {creds_path}", file=sys.stderr)
         print(
             "Download an OAuth client (Desktop app) from Google Cloud Console "
-            "and place it at the path above, or set GMAIL_MCP_CREDENTIALS.",
+            "and place it at the path above, or set GMAIL_AUTOLABEL_CREDENTIALS.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -58,7 +58,7 @@ def get_service():
     if not token_path.exists():
         raise RuntimeError(
             f"Token not found at {token_path}. "
-            "Run `python -m gmail_mcp auth` (or `gmail-mcp auth`) first."
+            "Run `gmail-autolabel auth` first."
         )
     creds = Credentials.from_authorized_user_file(str(token_path), SCOPES)
     if not creds.valid:
@@ -67,6 +67,6 @@ def get_service():
             token_path.write_text(creds.to_json())
         else:
             raise RuntimeError(
-                "Stored credentials are invalid. Re-run `python -m gmail_mcp auth`."
+                "Stored credentials are invalid. Re-run `gmail-autolabel auth --force`."
             )
     return build("gmail", "v1", credentials=creds, cache_discovery=False)

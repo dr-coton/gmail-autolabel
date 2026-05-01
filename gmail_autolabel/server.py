@@ -3,9 +3,9 @@ from base64 import urlsafe_b64decode
 
 from mcp.server.fastmcp import FastMCP
 
-from gmail_mcp.client import get_service
+from gmail_autolabel.client import get_service
 
-mcp = FastMCP("private-gmail-mcp")
+mcp = FastMCP("gmail-autolabel")
 
 
 def _header(headers: list[dict], name: str) -> str:

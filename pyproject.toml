@@ -1,8 +1,25 @@
 [project]
-name = "private-gmail-mcp"
+name = "gmail-autolabel"
 version = "0.1.0"
-description = "Custom Gmail MCP server for label management"
+description = "Automatic Gmail labeling MCP server for Claude Desktop"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.10"
+authors = [{ name = "dr-coton" }]
+keywords = ["mcp", "gmail", "claude", "labeling", "inbox-zero", "email"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Email",
+    "Topic :: Office/Business",
+]
 dependencies = [
     "mcp>=1.2.0",
     "google-api-python-client>=2.100",
@@ -10,12 +27,17 @@ dependencies = [
     "google-auth-httplib2>=0.2",
 ]
 
+[project.urls]
+Homepage = "https://github.com/dr-coton/gmail-autolabel"
+Repository = "https://github.com/dr-coton/gmail-autolabel"
+Issues = "https://github.com/dr-coton/gmail-autolabel/issues"
+
 [project.scripts]
-gmail-mcp = "gmail_mcp.__main__:main"
+gmail-autolabel = "gmail_autolabel.__main__:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["gmail_mcp"]
+packages = ["gmail_autolabel"]

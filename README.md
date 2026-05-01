@@ -1,256 +1,290 @@
-# private-gmail-mcp
+<div align="center">
 
-Claude Desktop에서 사용할 커스텀 Gmail MCP 서버. 라벨이 지정되지 않은 메일을
-일괄 분류하기 위한 6개의 툴을 제공합니다.
+# Gmail Autolabel
 
-## 제공 툴
+**AI-powered automatic Gmail labeling for Claude Desktop.**
+Stop manually triaging your inbox — let Claude read, classify, and file your mail.
 
-| 툴 | 설명 |
-| --- | --- |
-| `list_unlabeled_emails(max_results=50)` | 사용자 라벨이 없는 최신순 메일 N개 (`has:nouserlabels`) |
-| `get_email_content(email_id, max_chars=10000)` | 특정 메일의 본문 (HTML은 텍스트로 변환) |
-| `get_email_labels(email_id)` | 메일에 붙어있는 라벨 목록 |
-| `list_labels(user_only=True)` | 메일함 전체 라벨 목록 |
-| `add_label_to_email(email_id, label_name)` | 메일에 라벨 적용 (이름 기준, 존재해야 함) |
-| `create_label(name)` | 새 라벨 생성 (멱등) |
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-server-8A2BE2.svg)](https://modelcontextprotocol.io/)
+[![Claude Desktop](https://img.shields.io/badge/Claude-Desktop-D97757.svg)](https://claude.ai/download)
 
-## 사전 요구사항
+**English** · [한국어](./README.ko.md) · [中文](./README.zh.md) · [日本語](./README.ja.md)
 
-- macOS / Linux
-- Python 3.10+
-- `uv` — `brew install uv`
+</div>
 
 ---
 
-## 설치 가이드 (상세)
+## What it does
 
-### 1. Google Cloud 프로젝트 생성
+`gmail-autolabel` is a [Model Context Protocol](https://modelcontextprotocol.io/)
+server that lets Claude Desktop classify and label your Gmail automatically.
 
-1. https://console.cloud.google.com/ 접속 (본인 Gmail 계정으로 로그인)
-2. 상단 좌측 **프로젝트 선택 드롭다운** 클릭 → **새 프로젝트**
-3. 이름 아무거나 (예: `private-gmail-mcp`) → **만들기**
-4. 생성 후 다시 드롭다운에서 그 프로젝트 **선택** ← 빼먹기 쉬움
+Point Claude at your inbox, and it will:
 
-### 2. Gmail API 활성화
+1. Pull the most recent emails that have **no user labels** (`has:nouserlabels`)
+2. Read the subject and sender — fetch the body only when ambiguous
+3. Apply an existing label, or create a new one if needed
+4. Fall back to a **"Needs Review"** label when genuinely uncertain
 
-1. 좌측 햄버거 메뉴 → **API 및 서비스 → 라이브러리**
-2. 검색창에 `Gmail API` → 클릭 → **사용** 버튼
-3. "사용 설정됨" 표시 뜨면 OK
+You stay in control: every label decision is made by Claude using your prompt,
+not by hard-coded rules. Run it on demand or schedule it.
 
-### 3. OAuth 동의 화면 설정 ⚠️ 가장 헷갈리는 단계
+## Quick demo
 
-1. 좌측 메뉴 → **API 및 서비스 → OAuth 동의 화면**
-2. **User Type**:
-   - 개인 `@gmail.com` 쓰면 무조건 **External** 선택
-   - (Internal은 Google Workspace 조직 계정에서만 보임)
-3. **만들기** → 양식 입력:
-   - 앱 이름: `Private Gmail MCP` (아무거나)
-   - 사용자 지원 이메일: 본인 이메일
-   - 개발자 연락처: 본인 이메일
-   - 나머지(앱 도메인, 로고)는 비워두면 됨
-4. **저장 후 계속**
-5. **범위(Scopes)** 단계: 그냥 **저장 후 계속** 누르고 넘어감
-   - 여기서 추가 안 해도 됨. OAuth client가 요청 시 알아서 처리됨.
-6. **테스트 사용자(Test users)** 단계:
-   - **+ ADD USERS** → 본인 Gmail 주소 입력 → 추가
-   - ⚠️ 이거 안 하면 인증 시 `403 access_denied` 떨어짐
-7. **저장 후 계속** → 요약 화면 → 완료
-8. **Publishing status: Testing** 상태로 남겨두기 (다음 섹션 참조)
+In Claude Desktop, simply say:
 
-### 4. OAuth 클라이언트 ID 발급
+> Triage my unlabeled inbox. For unclear ones, read the body. If you can't
+> decide, label them "Needs Review".
 
-1. 좌측 메뉴 → **API 및 서비스 → 사용자 인증 정보(Credentials)**
-2. 상단 **+ 사용자 인증 정보 만들기 → OAuth 클라이언트 ID**
-3. **Application type: Desktop app** ← 중요. Web app 아님.
-4. 이름 아무거나 (`gmail-mcp-desktop`)
-5. **만들기** 누르면 client ID/secret 팝업
-6. 팝업 우측 또는 목록에서 **JSON 다운로드** 버튼 클릭
-7. 다운받은 파일 (`client_secret_xxxxx.json`) 을 다음 위치로 옮기고 이름 변경:
+Claude will run something like:
 
-```bash
-mkdir -p ~/.config/private-gmail-mcp
-mv ~/Downloads/client_secret_*.json ~/.config/private-gmail-mcp/credentials.json
+```
+list_labels()                        # see existing categories
+list_unlabeled_emails(50)            # 50 emails to triage
+get_email_content(<id>)              # only for ambiguous ones
+add_label_to_email(<id>, "Receipts") # apply a label
+create_label("Newsletters")          # or create a new one
 ```
 
-> 다른 경로에 두고 싶으면 `export GMAIL_MCP_CREDENTIALS=/path/to/credentials.json`
+## Why this vs. the official Gmail MCP
 
-### 5. 7일 만료 함정 ⚠️ 반드시 알아두기
+|                  | Official Gmail MCP (claude.ai) | gmail-autolabel              |
+| ---------------- | ------------------------------ | ---------------------------- |
+| Hosting          | Anthropic-hosted               | **Local on your machine**    |
+| OAuth scope      | Full read / send / modify      | `gmail.modify` only          |
+| Send / delete    | Allowed                        | **Not allowed**              |
+| Data flow        | Through Anthropic              | Direct: your laptop ↔ Google |
+| Customization    | Fixed tool set                 | You own the code             |
+| Focus            | General Gmail use              | Optimized for label triage   |
 
-방금 동의 화면을 **Testing** 상태로 둔다고 했는데, Google 정책상:
+If you want a focused, transparent, locally-run tool for inbox triage with
+minimal scopes, this is for you.
 
-> Testing 상태인 앱이 발급한 refresh token은 **7일 후 자동 만료**됨
+## Tools
 
-→ 매주 한 번 재인증 필요 (브라우저 클릭 1번).
+| Tool                                          | Description                                            |
+| --------------------------------------------- | ------------------------------------------------------ |
+| `list_unlabeled_emails(max_results=50)`       | Recent emails with no user labels (`has:nouserlabels`) |
+| `get_email_content(email_id, max_chars=10000)` | Full body — HTML stripped, length-capped              |
+| `get_email_labels(email_id)`                  | Labels on a specific email                             |
+| `list_labels(user_only=True)`                 | All labels in the mailbox                              |
+| `add_label_to_email(email_id, label_name)`    | Apply a label by name (must already exist)             |
+| `create_label(name)`                          | Create a label (idempotent)                            |
 
-**해결책 3가지:**
+## Prerequisites
 
-| 옵션 | 장점 | 단점 |
-|---|---|---|
-| **A. Testing 유지 + 매주 재인증** | 즉시 사용 가능, 무료 | 매주 명령 1줄 실행 |
-| **B. "Production" 게시** | refresh token 무한 | `gmail.modify`는 restricted scope라 Google 검수 필요 (수 주~수 개월, 개인용은 거의 통과 안 됨) |
-| **C. Workspace + Internal 타입** | 검수 없이 무한 | Workspace(유료) 필요 |
+- macOS or Linux
+- Python 3.10+
+- [`uv`](https://github.com/astral-sh/uv) — `brew install uv`
 
-**추천: A.** 만료되면 한 줄로 복구:
+---
+
+## Installation
+
+### 1. Create a Google Cloud project
+
+1. Go to <https://console.cloud.google.com/> and sign in with your Gmail account.
+2. Click the project dropdown at the top → **New Project**.
+3. Name it anything (e.g. `gmail-autolabel`) → **Create**.
+4. Make sure that project is selected after creation.
+
+### 2. Enable the Gmail API
+
+1. Sidebar → **APIs & Services → Library**.
+2. Search `Gmail API` → click → **Enable**.
+
+### 3. Configure the OAuth consent screen ⚠️ easy to misstep
+
+1. Sidebar → **APIs & Services → OAuth consent screen**.
+2. **User Type**: choose **External** (Internal is for Workspace orgs only).
+3. Fill in app name (e.g. `Gmail Autolabel`), your email for support, your
+   email for developer contact. Leave the optional fields blank.
+4. **Save and Continue**.
+5. **Scopes**: just **Save and Continue** — the OAuth client will request the
+   scope at runtime, you don't need to add it here.
+6. **Test users**: click **+ ADD USERS** and add **your own Gmail address**.
+   ⚠️ Skipping this causes `403 access_denied` at sign-in.
+7. **Save and Continue** → finish. Leave the app in **Testing** status (see §5).
+
+### 4. Create a Desktop OAuth client
+
+1. Sidebar → **APIs & Services → Credentials**.
+2. **+ CREATE CREDENTIALS → OAuth client ID**.
+3. **Application type: Desktop app** ← important. Not Web app.
+4. Name it `gmail-autolabel-desktop` (or anything).
+5. Click **Create**, then download the JSON.
+6. Move and rename the file:
+
+   ```bash
+   mkdir -p ~/.config/gmail-autolabel
+   mv ~/Downloads/client_secret_*.json ~/.config/gmail-autolabel/credentials.json
+   ```
+
+   To use a different path, set `GMAIL_AUTOLABEL_CREDENTIALS=/path/to/credentials.json`.
+
+### 5. ⚠️ The 7-day expiration trap
+
+Apps in **Testing** status issue refresh tokens that **expire after 7 days**.
+This is a Google policy, not a bug.
+
+Three ways to handle it:
+
+| Option                                | Pros                       | Cons                                                                |
+| ------------------------------------- | -------------------------- | ------------------------------------------------------------------- |
+| **A. Stay in Testing, re-auth weekly** | Free, instant              | One command per week                                                |
+| **B. Publish to Production**          | Tokens never expire        | `gmail.modify` is a restricted scope → Google verification required |
+| **C. Workspace + Internal type**      | No verification, unlimited | Requires paid Google Workspace                                      |
+
+**Recommended: A.** When tokens expire, recover with one command (see §Re-authentication).
+
+### 6. First-time OAuth
+
 ```bash
-uvx --from git+https://github.com/dr-coton/private-gmail-mcp gmail-mcp auth --force
+uvx --from git+https://github.com/dr-coton/gmail-autolabel gmail-autolabel auth
 ```
 
-### 6. 최초 OAuth 인증
+What happens:
 
-git URL에서 바로 실행. 브라우저가 열리며 Google 인증을 요청합니다.
+1. A local HTTP server starts on a random port.
+2. Your browser opens to Google's sign-in page.
+3. Pick your Gmail account.
+4. **"Google hasn't verified this app"** warning appears — this is expected.
+   Click **Advanced** → **Go to Gmail Autolabel (unsafe)**.
+5. Grant permissions → page redirects back to localhost.
+6. Terminal prints `Authentication complete. Token saved to ...`.
 
-```bash
-uvx --from git+https://github.com/dr-coton/private-gmail-mcp gmail-mcp auth
-```
+The token is stored at `~/.config/gmail-autolabel/token.json`.
 
-진행 흐름:
-1. 로컬에 임시 HTTP 서버 띄움 (랜덤 포트)
-2. 기본 브라우저 자동으로 열림 → Google 로그인 화면
-3. 본인 Gmail 계정 선택
-4. **"Google에서 확인되지 않은 앱입니다" 경고** 등장 ← 정상
-   - **고급(Advanced)** 클릭 → **`Private Gmail MCP`(안전하지 않음)으로 이동** 클릭
-5. 권한 동의 화면 → **계속**
-   - 실제 scope는 `gmail.modify` (메일 읽기 + 라벨 수정). 영구 삭제·전송 불가.
-6. "인증 완료" 페이지로 자동 리다이렉트
-7. 터미널에 `Authentication complete. Token saved to ...` 출력
+### 7. Configure Claude Desktop
 
-토큰은 `~/.config/private-gmail-mcp/token.json` 에 저장됨.
+Open the config file:
 
-### 7. Claude Desktop 등록
-
-설정 파일 열기:
 ```bash
 open -e ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
-(파일 없으면 새로 만들기). 다음 추가:
+Add the `mcpServers` entry (merge with any existing config):
 
 ```json
 {
   "mcpServers": {
-    "private-gmail": {
+    "gmail-autolabel": {
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/dr-coton/private-gmail-mcp",
-        "gmail-mcp"
+        "git+https://github.com/dr-coton/gmail-autolabel",
+        "gmail-autolabel"
       ]
     }
   }
 }
 ```
 
-이미 다른 설정(`preferences` 등)이 있으면 그 객체 안에 `mcpServers` 키만 추가.
-JSON 콤마/괄호 빠뜨리지 말 것.
+Save → **fully quit Claude Desktop (⌘Q) and relaunch**.
 
-저장 후 **Claude Desktop 완전 종료(⌘Q) 후 재실행**.
+### 8. Verify
 
-### 8. 동작 확인
+Open a new chat in Claude Desktop, click the tools icon, and you should see
+`gmail-autolabel` with 6 tools listed. Try:
 
-Claude Desktop에서 새 대화 시작 → 우측 하단 도구 아이콘 → `private-gmail` 서버
-및 툴 6개 보이면 성공.
+> Show me my Gmail labels.
 
-테스트 한마디:
-> 내 Gmail 라벨 목록 보여줘
-
-`list_labels` 호출 결과가 떠야 정상.
+If `list_labels` returns a list, you're done.
 
 ---
 
-## 사용 시나리오
+## Re-authentication
 
-Claude에게 다음과 같이 지시:
-
-> 라벨이 지정되지 않은 최신 메일 50개를 가져와서 각각 적절한 라벨을 지정해줘.
-> subject/snippet으로 충분히 판단되면 그걸로 분류하고, 애매한 메일은
-> `get_email_content`로 본문을 읽고 분류해. 그래도 도저히 판단이 어려우면
-> `메일 검토 필요` 라벨을 (없으면 생성해서) 붙여줘.
-
-Claude가 실행하는 흐름:
-1. `list_labels()` — 어떤 라벨들이 이미 있는지 확인
-2. `list_unlabeled_emails(50)` — 분류 대상 50건
-3. 메일별로 판단 → 필요하면 `get_email_content` → 필요하면 `create_label` → `add_label_to_email`
-
----
-
-## 토큰 갱신 / 재인증
-
-7일 만료 또는 토큰 손상 시 한 줄로 처리:
+When tokens expire (every 7 days in Testing mode), recover with one command:
 
 ```bash
-uvx --from git+https://github.com/dr-coton/private-gmail-mcp gmail-mcp auth --force
+uvx --from git+https://github.com/dr-coton/gmail-autolabel gmail-autolabel auth --force
 ```
 
-`--force`(또는 동등한 `--refresh`)가 하는 일:
-- 기존 `token.json` 삭제
-- Google에 `prompt=consent` 보내서 새 refresh token 강제 발급
+What `--force` (alias `--refresh`) does:
 
-플래그 없이 그냥 `auth` 만 돌려도 되지만, 이전 동의가 캐시돼서 새 refresh token이
-안 떨어질 수 있음 → 만료 복구는 `--force` 권장.
+- Deletes the existing `token.json`
+- Sends `prompt=consent` to Google so a fresh refresh token is issued
 
----
+Without `--force`, Google may cache your previous consent and return only an
+access token — leading to the same expiration a week later. Use `--force` for
+recovery.
 
-## 패키지 업데이트
+## Updating
 
-`uvx`는 git URL을 캐시합니다. 새 버전을 받으려면:
+`uvx` caches the git URL. To pull a new version:
+
 ```bash
-uvx --refresh --from git+https://github.com/dr-coton/private-gmail-mcp gmail-mcp --help
+uvx --refresh --from git+https://github.com/dr-coton/gmail-autolabel gmail-autolabel --help
 ```
 
-`auth` 와 함께 쓸 때:
+Combined cache refresh + re-auth:
+
 ```bash
-# uvx 캐시 갱신 + OAuth 재인증
-uvx --refresh --from git+https://github.com/dr-coton/private-gmail-mcp gmail-mcp auth --force
+uvx --refresh --from git+https://github.com/dr-coton/gmail-autolabel gmail-autolabel auth --force
 ```
 
----
+## Permissions
 
-## 권한 범위
+This server requests **only** the `https://www.googleapis.com/auth/gmail.modify`
+scope: read messages and modify labels. It **cannot** send mail, delete mail,
+or change account settings.
 
-`https://www.googleapis.com/auth/gmail.modify` — 메일 읽기 + 라벨 수정.
-삭제/전송 권한은 요청하지 않습니다.
+To revoke at any time: <https://myaccount.google.com/permissions>.
 
-토큰 무효화하려면 https://myaccount.google.com/permissions 에서 앱 제거.
+## Troubleshooting
 
----
+| Error                                            | Cause / Fix                                                                          |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `403 access_denied` (in browser)                 | Your email isn't in Test users. See §3 step 6.                                       |
+| `redirect_uri_mismatch`                          | OAuth client was created as "Web app". Recreate as **Desktop app**.                  |
+| `invalid_grant: Token has been expired or revoked` | 7-day expiration. Run `gmail-autolabel auth --force`.                              |
+| `Token not found` (when MCP starts)              | Auth not completed. Re-run §6.                                                       |
+| Tools don't show up in Claude Desktop            | JSON syntax error in config, or app wasn't fully relaunched.                         |
+| `uvx: command not found`                         | `brew install uv`                                                                    |
+| Inspect Claude Desktop MCP logs                  | `~/Library/Logs/Claude/mcp*.log`                                                     |
 
-## 자주 만나는 에러
+## Local development
 
-| 에러 | 원인 / 해결 |
-|---|---|
-| `403 access_denied` (브라우저) | 동의 화면 Test users에 본인 이메일 추가 안 됨 → 3-6단계 |
-| `redirect_uri_mismatch` | OAuth client를 "Web app"으로 만듦 → 삭제하고 "Desktop app"으로 재발급 |
-| `invalid_grant: Token has been expired or revoked` | 7일 만료 → `gmail-mcp auth --force` |
-| `Token not found` (MCP 시작 시) | `auth` 명령 안 돌렸거나 경로 다름 → 6단계 다시 |
-| Claude에서 툴 안 보임 | config JSON 문법 오류 (콤마/괄호) 또는 Claude Desktop 재시작 안 함 |
-| `uvx: command not found` | `brew install uv` |
-| Claude Desktop 로그 보고 싶을 때 | `~/Library/Logs/Claude/mcp*.log` |
-
----
-
-## 로컬 개발 (선택)
-
-코드를 직접 수정하면서 테스트할 때만 필요:
 ```bash
-git clone https://github.com/dr-coton/private-gmail-mcp
-cd private-gmail-mcp
+git clone https://github.com/dr-coton/gmail-autolabel
+cd gmail-autolabel
 uv sync
-uv run gmail-mcp auth
+uv run gmail-autolabel auth
 ```
 
-Claude Desktop config:
+Claude Desktop config for the local checkout:
+
 ```json
 {
   "mcpServers": {
-    "private-gmail": {
+    "gmail-autolabel": {
       "command": "uv",
       "args": [
         "--directory",
-        "/path/to/private-gmail-mcp",
+        "/path/to/gmail-autolabel",
         "run",
-        "gmail-mcp"
+        "gmail-autolabel"
       ]
     }
   }
 }
 ```
+
+## Roadmap
+
+- [ ] Batch labeling beyond 50 emails per run
+- [ ] Customizable label suggestion prompts shipped as a system prompt
+- [ ] Headless re-auth (cron-friendly)
+- [ ] Smart unsubscribe / archive suggestions
+- [ ] Support for additional MCP clients (Cursor, etc.)
+
+## Contributing
+
+PRs welcome. For non-trivial changes, please open an issue first to discuss.
+
+## License
+
+[MIT](LICENSE) © 2026 dr-coton
